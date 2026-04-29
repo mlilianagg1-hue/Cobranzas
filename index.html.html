@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#0f172a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Cobranzas">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="https://fav.farm/📞">
+<title>Gestión de Cobranzas</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-app-compat.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-database-compat.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f0f4f8;--white:#fff;--border:#e2e8f0;--text:#1e293b;--muted:#94a3b8;--accent:#0ea5e9;--accent-dark:#0284c7;--green:#22c55e;--orange:#f97316;--red:#ef4444;--purple:#a855f7;--yellow:#eab308;--shadow:0 1px 3px rgba(0,0,0,.08),0 4px 16px rgba(0,0,0,.05);--shadow-lg:0 8px 32px rgba(0,0,0,.12)}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-height:100vh}
+
+/* SETUP */
+#setup-screen{position:fixed;inset:0;background:linear-gradient(135deg,#0f172a,#1e3a5f);z-index:999;display:flex;align-items:center;justify-content:center;padding:20px}
+.setup-box{background:#fff;border-radius:20px;padding:26px 20px;max-width:460px;width:100%;max-height:90vh;overflow-y:auto}
+.setup-logo{font-size:34px;text-align:center;margin-bottom:6px}
+.setup-title{font-size:19px;font-weight:700;text-align:center;margin-bottom:5px}
+.setup-sub{font-size:13px;color:var(--muted);text-align:center;margin-bottom:20px;line-height:1.6}
+.paso{display:flex;gap:11px;align-items:flex-start;margin-bottom:13px;font-size:13px;line-height:1.6}
+.paso-n{background:var(--accent);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;flex-shrink:0;margin-top:1px}
+.setup-link{color:var(--accent);font-weight:700;text-decoration:none}
+.setup-textarea{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:12px;font-family:monospace;height:100px;resize:none;outline:none;margin-top:8px;color:var(--text)}
+.setup-textarea:focus{border-color:var(--accent)}
+.setup-btn{width:100%;padding:13px;background:linear-gradient(135deg,#0ea5e9,#0284c7);border:none;border-radius:12px;color:#fff;font-weight:700;font-size:15px;cursor:pointer;font-family:'Sora',sans-serif;margin-top:10px}
+.setup-error{background:#fef2f2;color:#dc2626;border-radius:8px;padding:9px 12px;font-size:12px;margin-top:9px;display:none}
+
+/* HEADER */
+.header{background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 60%,#0ea5e9 100%);padding:16px 14px 13px;position:sticky;top:0;z-index:50;box-shadow:0 2px 12px rgba(0,0,0,.2)}
+.header-inner{max-width:700px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:9px}
+.header-title h1{font-size:15px;font-weight:700;color:#fff}
+.header-title p{font-size:10px;color:rgba(255,255,255,.5);margin-top:1px}
+.hbtns{display:flex;gap:6px;align-items:center}
+.hbtn{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:9px;color:#fff;padding:7px 11px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Sora',sans-serif;white-space:nowrap}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:#94a3b8;display:inline-block;margin-right:4px;transition:background .3s}
+.sync-dot.ok{background:#22c55e}
+.sync-dot.sync{background:#f97316;animation:pulse .8s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* TABS */
+.tabs{max-width:700px;margin:0 auto;display:flex;padding:13px 14px 0}
+.tab{flex:1;padding:9px 4px;text-align:center;font-size:11px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent;cursor:pointer;transition:all .15s}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+.container{max-width:700px;margin:0 auto;padding:13px 14px 80px}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:13px}
+.stat-card{background:#fff;border-radius:12px;padding:10px 7px;box-shadow:var(--shadow);text-align:center}
+.s-num{font-size:19px;font-weight:700}
+.s-label{font-size:10px;color:var(--muted);margin-top:1px;font-weight:500;text-transform:uppercase;letter-spacing:.3px}
+
+.barra{display:flex;gap:7px;margin-bottom:11px}
+.input-buscar{flex:1;padding:9px 11px;background:#fff;border:1px solid var(--border);border-radius:10px;font-size:13px;outline:none;font-family:'Sora',sans-serif;color:var(--text)}
+.input-buscar:focus{border-color:var(--accent)}
+.btn-filtro{padding:9px 11px;background:#fff;border:1px solid var(--border);border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;color:var(--text);font-family:'Sora',sans-serif;white-space:nowrap}
+.btn-filtro.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+/* CARDS */
+.cliente-card{background:#fff;border-radius:14px;padding:12px 13px;box-shadow:var(--shadow);margin-bottom:8px;cursor:pointer;transition:box-shadow .15s,transform .1s;border-left:4px solid transparent;animation:fadeUp .22s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+.cliente-card:hover{box-shadow:var(--shadow-lg);transform:translateY(-1px)}
+.cliente-card.hoy{border-left-color:var(--red)}
+.cliente-card.pronto{border-left-color:var(--orange)}
+.cliente-card.cerrado{border-left-color:#94a3b8;opacity:.7}
+.card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px}
+.cliente-nombre{font-size:14px;font-weight:700}
+.cliente-info{font-size:11px;color:var(--muted);margin-top:2px}
+.monto-tag{background:#f0f9ff;color:var(--accent-dark);border-radius:8px;padding:4px 9px;font-size:13px;font-weight:700;white-space:nowrap;flex-shrink:0}
+.rbadge{display:inline-flex;align-items:center;gap:4px;border-radius:20px;padding:3px 8px;font-size:11px;font-weight:600}
+.r-contesto{background:#dcfce7;color:#16a34a}
+.r-no-contesto{background:#fef9c3;color:#854d0e}
+.r-prometio{background:#dbeafe;color:#1d4ed8}
+.r-no-localizado{background:#fce7f3;color:#9d174d}
+.r-pendiente{background:#f3e8ff;color:#7e22ce}
+.acciones{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:8px}
+.btn-a{padding:8px 5px;border-radius:9px;border:none;font-size:11px;font-weight:600;cursor:pointer;font-family:'Sora',sans-serif;display:flex;align-items:center;justify-content:center;gap:3px;transition:opacity .15s}
+.btn-a:active{opacity:.7;transform:scale(.97)}
+.ba-contesto{background:#dcfce7;color:#16a34a}
+.ba-nocontesto{background:#fef9c3;color:#92400e}
+.ba-prometio{background:#dbeafe;color:#1d4ed8}
+.ba-mas{background:#f1f5f9;color:#475569}
+.ba-wa{background:#dcfce7;color:#15803d}
+.ba-tel{background:#ede9fe;color:#6d28d9}
+.fila-contacto{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:5px}
+.prox-llamada{display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
+.prox-label{font-size:11px;color:var(--muted)}
+.prox-fecha{font-size:12px;font-weight:600}
+.prox-fecha.urgente{color:var(--red)}
+.prox-fecha.hoy-cls{color:var(--orange)}
+.historial-item{display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)}
+.historial-item:last-child{border-bottom:none}
+.hist-fecha{font-size:11px;color:var(--muted);white-space:nowrap;min-width:66px}
+.empty{text-align:center;padding:40px 20px;color:var(--muted)}
+.empty-icon{font-size:36px;margin-bottom:8px}
+
+/* ALERTAS BANNER */
+.alerta-hoy{background:linear-gradient(135deg,#fff7ed,#fff);border:1px solid #fed7aa;border-radius:13px;padding:12px 13px;margin-bottom:12px}
+.alerta-hoy-titulo{font-size:13px;font-weight:700;color:#c2410c;margin-bottom:6px}
+.alerta-hoy-item{font-size:12px;color:#7c2d12;padding:3px 0}
+.alerta-promesa{background:linear-gradient(135deg,#eff6ff,#fff);border:1px solid #93c5fd;border-radius:13px;padding:12px 13px;margin-bottom:12px}
+.alerta-promesa-titulo{font-size:13px;font-weight:700;color:#1d4ed8;margin-bottom:6px;display:flex;align-items:center;gap:5px}
+.alerta-promesa-item{font-size:12px;color:#1e40af;padding:3px 0}
+
+/* ─── CALENDARIO ─── */
+.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.cal-titulo{font-size:16px;font-weight:700;text-transform:capitalize}
+.cal-nav{background:#fff;border:1px solid var(--border);border-radius:9px;width:34px;height:34px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal-dow{text-align:center;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;padding:4px 0;letter-spacing:.3px}
+.cal-day{background:#fff;border-radius:10px;min-height:54px;padding:5px 5px 4px;display:flex;flex-direction:column;align-items:center;cursor:pointer;transition:box-shadow .15s;border:1.5px solid transparent;position:relative}
+.cal-day:hover{box-shadow:var(--shadow)}
+.cal-day.vacio{background:transparent;cursor:default;border:none}
+.cal-day.es-hoy{border-color:var(--accent);background:#f0f9ff}
+.cal-day.tiene-eventos{box-shadow:var(--shadow)}
+.cal-day-num{font-size:12px;font-weight:700;color:var(--text);line-height:1}
+.cal-day.es-hoy .cal-day-num{color:var(--accent)}
+.cal-day.pasado .cal-day-num{color:var(--muted)}
+.cal-dots{display:flex;flex-wrap:wrap;gap:2px;justify-content:center;margin-top:3px}
+.cal-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.cal-dot.d-prometio{background:var(--accent)}
+.cal-dot.d-llamar{background:var(--orange)}
+.cal-dot.d-atrasado{background:var(--red)}
+.cal-badge{font-size:9px;font-weight:700;margin-top:2px;line-height:1}
+.cal-badge.atrasado{color:var(--red)}
+.cal-badge.prometio{color:var(--accent)}
+.cal-badge.llamar{color:var(--orange)}
+.cal-leyenda{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px;padding:10px 12px;background:#fff;border-radius:10px;box-shadow:var(--shadow)}
+.leyenda-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)}
+
+/* MODALES */
+.overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.65);z-index:200;align-items:flex-end;justify-content:center}
+.overlay.open{display:flex}
+@media(min-width:500px){.overlay{align-items:center;padding:20px}}
+.modal{background:#fff;width:100%;max-width:480px;border-radius:20px 20px 0 0;padding:20px 17px 28px;max-height:92vh;overflow-y:auto;animation:slideUp .26s cubic-bezier(.32,1.1,.6,1)}
+@keyframes slideUp{from{transform:translateY(50px);opacity:0}to{transform:translateY(0);opacity:1}}
+@media(min-width:500px){.modal{border-radius:20px}}
+.modal-handle{width:36px;height:4px;background:#e2e8f0;border-radius:2px;margin:0 auto 16px}
+.modal-titulo{font-size:16px;font-weight:700;margin-bottom:14px}
+.campo{margin-bottom:12px}
+.campo label{display:block;font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px}
+.campo input,.campo select,.campo textarea{width:100%;padding:10px 11px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;outline:none;font-family:'Sora',sans-serif;color:var(--text);background:#fff;transition:border-color .15s}
+.campo input:focus,.campo select:focus,.campo textarea:focus{border-color:var(--accent)}
+.campo textarea{resize:none;height:66px}
+.btn-guardar{width:100%;padding:13px;background:linear-gradient(135deg,#0ea5e9,#0284c7);border:none;border-radius:12px;color:#fff;font-weight:700;font-size:15px;cursor:pointer;font-family:'Sora',sans-serif;margin-top:3px}
+.btn-cancelar{width:100%;padding:10px;background:transparent;border:none;color:var(--muted);font-size:13px;cursor:pointer;font-family:'Sora',sans-serif;margin-top:4px}
+.fab{position:fixed;bottom:20px;right:16px;background:linear-gradient(135deg,#0ea5e9,#0284c7);border:none;border-radius:50%;width:52px;height:52px;color:#fff;font-size:25px;cursor:pointer;box-shadow:0 4px 18px rgba(14,165,233,.4);display:flex;align-items:center;justify-content:center;z-index:40}
+.fab:active{transform:scale(.92)}
+.voz-wrap{position:relative}
+.voz-wrap textarea{padding-right:42px}
+.btn-mic{position:absolute;right:7px;bottom:7px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;width:30px;height:30px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.btn-mic.grabando{background:#fef2f2;border-color:#fca5a5}
+.tog{position:relative;display:inline-block;width:46px;height:25px;cursor:pointer;flex-shrink:0}
+.tog input{opacity:0;width:0;height:0;position:absolute}
+.tog-track{position:absolute;inset:0;background:#cbd5e1;border-radius:13px;transition:.3s}
+.tog-thumb{position:absolute;top:2px;left:2px;width:21px;height:21px;background:#fff;border-radius:50%;transition:.3s;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.tog input:checked+.tog-track{background:#22c55e}
+.tog input:checked~.tog-thumb{transform:translateX(21px)}
+@media(max-width:400px){.stats{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+
+<!-- SETUP -->
+<div id="setup-screen">
+  <div class="setup-box">
+    <div class="setup-logo">📞</div>
+    <div class="setup-title">Gestión de Cobranzas</div>
+    <div class="setup-sub">Conectá Firebase para compartir datos en tiempo real entre todos los dispositivos. Solo se hace una vez.</div>
+    <div class="paso"><div class="paso-n">1</div><div>Entrá a <a class="setup-link" href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a> → Crear proyecto nuevo.</div></div>
+    <div class="paso"><div class="paso-n">2</div><div>En el menú izquierdo: <b>Realtime Database → Crear base de datos → Modo de prueba</b>.</div></div>
+    <div class="paso"><div class="paso-n">3</div><div>⚙️ Configuración del proyecto → <b>Tus apps → icono &lt;/&gt;</b> → Registrar → copiá el bloque <code>firebaseConfig</code>.</div></div>
+    <div class="paso"><div class="paso-n">4</div><div>Pegalo acá abajo y tocá <b>Conectar</b>.</div></div>
+    <textarea class="setup-textarea" id="setup-input" placeholder='apiKey: "AIza...",&#10;authDomain: "mi-app.firebaseapp.com",&#10;databaseURL: "https://mi-app-default-rtdb.firebaseio.com",&#10;projectId: "mi-app", ...'></textarea>
+    <div class="setup-error" id="setup-error">❌ No se pudo conectar. Verificá el config y que la Realtime Database esté en modo prueba.</div>
+    <button class="setup-btn" onclick="conectarFirebase()">Conectar →</button>
+    <button class="btn-cancelar" onclick="usarSinNube()" style="margin-top:8px;font-size:12px">Usar sin nube (solo este dispositivo)</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app-main" style="display:none">
+<div class="header">
+  <div class="header-inner">
+    <div class="header-title">
+      <h1>📞 Gestión de Cobranzas</h1>
+      <p id="fecha-header"></p>
+    </div>
+    <div class="hbtns">
+      <span style="display:flex;align-items:center;font-size:10px;color:rgba(255,255,255,.7)"><span class="sync-dot" id="sync-dot"></span><span id="sync-txt">--</span></span>
+      <button class="hbtn" onclick="abrirModalAlertas()">🔔</button>
+      <button class="hbtn" onclick="abrirModalSheets()" title="Conectar Google Sheets">📊</button>
+      <button class="hbtn" onclick="abrirModalCliente(null)">+ Cliente</button>
+    </div>
+  </div>
+</div>
+
+<div style="max-width:700px;margin:0 auto">
+  <div class="tabs">
+    <div class="tab active" id="tab-hoy" onclick="setTab('hoy')">📅 Hoy</div>
+    <div class="tab" id="tab-todos" onclick="setTab('todos')">👥 Todos</div>
+    <div class="tab" id="tab-cal" onclick="setTab('calendario')">🗓 Calendario</div>
+    <div class="tab" id="tab-historial" onclick="setTab('historial')">📋 Historial</div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="stats">
+    <div class="stat-card"><div class="s-num" id="st-total">0</div><div class="s-label">Clientes</div></div>
+    <div class="stat-card"><div class="s-num" style="color:var(--red)" id="st-hoy">0</div><div class="s-label">Hoy</div></div>
+    <div class="stat-card"><div class="s-num" style="color:var(--green)" id="st-prometio">0</div><div class="s-label">Prometieron</div></div>
+    <div class="stat-card"><div class="s-num" style="color:var(--muted)" id="st-pendiente">0</div><div class="s-label">Sin llamadas</div></div>
+  </div>
+  <div class="barra" id="barra-busq">
+    <input class="input-buscar" type="text" placeholder="🔍  Buscar..." id="input-buscar" oninput="render()">
+    <button class="btn-filtro active" id="f-todos" onclick="setFiltro('todos')">Todos</button>
+    <button class="btn-filtro" id="f-pend" onclick="setFiltro('pendiente')">Sin llamadas</button>
+  </div>
+  <div id="alerta-panel"></div>
+  <div id="lista"></div>
+</div>
+<button class="fab" onclick="abrirModalCliente(null)">＋</button>
+</div>
+
+<!-- MODAL CLIENTE -->
+<div class="overlay" id="modal-cliente">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-titulo" id="mc-titulo">Nuevo cliente</div>
+    <div class="campo"><label>Nombre completo</label><input type="text" id="f-nombre" placeholder="Ej: Juan García"></div>
+    <div class="campo"><label>Teléfono</label><input type="tel" id="f-tel" placeholder="Ej: 3442 123456"></div>
+    <div class="campo"><label>Monto de deuda ($)</label><input type="number" id="f-monto" placeholder="0"></div>
+    <div class="campo"><label>Factura / referencia</label><input type="text" id="f-ref" placeholder="Opcional"></div>
+    <div class="campo"><label>Notas</label><textarea id="f-notas" placeholder="Info adicional..."></textarea></div>
+    <button class="btn-guardar" onclick="guardarCliente()">Guardar cliente</button>
+    <button class="btn-cancelar" onclick="cerrar('modal-cliente')">Cancelar</button>
+  </div>
+</div>
+
+<!-- MODAL LLAMADA -->
+<div class="overlay" id="modal-llamada">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-titulo" id="ml-titulo">Registrar llamada</div>
+    <div style="margin-bottom:13px">
+      <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">Tipo de contacto</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px" id="btns-tipo">
+        <button class="btn-a ba-tel" onclick="selTipo('llamada',this)">📞 Llamada</button>
+        <button class="btn-a ba-wa" onclick="selTipo('whatsapp',this)">💬 WhatsApp</button>
+      </div>
+    </div>
+    <div style="margin-bottom:13px">
+      <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">Resultado</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px" id="btns-res">
+        <button class="btn-a ba-contesto" onclick="selRes('contesto',this)">✅ Contestó</button>
+        <button class="btn-a ba-nocontesto" onclick="selRes('no-contesto',this)">📵 No contestó</button>
+        <button class="btn-a ba-prometio" onclick="selRes('prometio',this)">🤝 Prometió pagar</button>
+        <button class="btn-a ba-mas" onclick="selRes('no-localizado',this)">❓ No localizado</button>
+        <button class="btn-a" style="background:#dcfce7;color:#15803d;grid-column:span 2" onclick="selRes('cobro-realizado',this)">💰 Cobro realizado</button>
+      </div>
+    </div>
+    <div class="campo"><label>Próximo contacto</label><input type="date" id="f-prox"></div>
+    <div class="campo">
+      <label>Nota — podés dictar por voz 🎤</label>
+      <div class="voz-wrap">
+        <textarea id="f-nota" placeholder="Ej: Dijo que paga el viernes..."></textarea>
+        <button class="btn-mic" id="btn-mic" onclick="toggleVoz()">🎤</button>
+      </div>
+    </div>
+    <button class="btn-guardar" onclick="guardarLlamada()">Guardar llamada</button>
+    <button class="btn-cancelar" onclick="cerrar('modal-llamada')">Cancelar</button>
+  </div>
+</div>
+
+<!-- MODAL HISTORIAL -->
+<div class="overlay" id="modal-hist">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-titulo" id="mh-titulo">Historial</div>
+    <div id="mh-body"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:13px">
+      <button class="btn-a ba-contesto" style="padding:12px;border-radius:11px;font-size:13px" onclick="abrirLlamada(clienteActivo)">📞 Nueva llamada</button>
+      <button class="btn-a ba-mas" style="padding:12px;border-radius:11px;font-size:13px" onclick="editarCliente(clienteActivo)">✏️ Editar</button>
+      <button class="btn-a ba-wa" style="padding:12px;border-radius:11px;font-size:13px" onclick="abrirWA(clienteActivo)">💬 WhatsApp</button>
+      <button class="btn-a ba-tel" style="padding:12px;border-radius:11px;font-size:13px" onclick="llamarTel(clienteActivo)">📞 Llamar</button>
+      <button class="btn-a" style="padding:12px;border-radius:11px;font-size:13px;background:#fef9c3;color:#854d0e;grid-column:span 2" onclick="confirmarCerrarProceso(clienteActivo)">🔒 Cerrar proceso — Cobro completado</button>
+    </div>
+    <button class="btn-cancelar" onclick="cerrar('modal-hist')">Cerrar</button>
+  </div>
+</div>
+
+<!-- MODAL DÍA CALENDARIO -->
+<div class="overlay" id="modal-dia">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-titulo" id="md-titulo">Eventos del día</div>
+    <div id="md-body"></div>
+    <button class="btn-cancelar" onclick="cerrar('modal-dia')">Cerrar</button>
+  </div>
+</div>
+
+<!-- MODAL GOOGLE SHEETS -->
+<div class="overlay" id="modal-sheets">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-titulo">📊 Conectar Google Sheets</div>
+    <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px;margin-bottom:16px;font-size:13px;color:#166534;line-height:1.7">
+      Cada vez que registres una llamada, los datos se envían automáticamente a tu hoja de cálculo con: <b>fecha, cliente, teléfono, monto, resultado, nota y próxima acción</b>.
+    </div>
+    <div style="margin-bottom:16px">
+      <div style="font-size:12px;font-weight:700;margin-bottom:10px">📋 Pasos (solo una vez):</div>
+      <div class="paso"><div class="paso-n">1</div><div>Abrí <a class="setup-link" href="https://sheets.google.com" target="_blank">sheets.google.com</a> → creá una hoja nueva → nombrala <b>"Cobranzas"</b>.</div></div>
+      <div class="paso"><div class="paso-n">2</div><div>Menú <b>Extensiones → Apps Script</b> → borrá el código existente → pegá el código de abajo → <b>Guardar</b>.</div></div>
+      <div class="paso"><div class="paso-n">3</div><div><b>Implementar → Nueva implementación → Aplicación web</b> → Acceso: <b>Cualquier usuario</b> → Implementar → copiá la URL.</div></div>
+      <div class="paso"><div class="paso-n">4</div><div>Pegá la URL acá abajo → <b>Guardar</b>.</div></div>
+    </div>
+    <div style="background:#1e293b;border-radius:10px;padding:12px;margin-bottom:14px;position:relative">
+      <div style="font-size:10px;color:#64748b;margin-bottom:6px;font-weight:600;text-transform:uppercase">Código para Apps Script</div>
+      <pre id="sheets-code" style="font-size:10px;color:#7dd3fc;white-space:pre-wrap;line-height:1.5;font-family:monospace;max-height:160px;overflow-y:auto">function doPost(e) {
+  try {
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    var data = JSON.parse(e.postData.contents);
+    
+    // Headers si la hoja está vacía
+    if (sheet.getLastRow() === 0) {
+      var headers = ["Fecha","Tipo contacto","Cliente","Teléfono","Monto ($)","Resultado","Nota","Próxima acción","Fecha próx. contacto","Referencia"];
+      var hRow = sheet.getRange(1,1,1,headers.length);
+      hRow.setValues([headers]);
+      hRow.setFontWeight("bold");
+      hRow.setBackground("#0ea5e9");
+      hRow.setFontColor("#ffffff");
+    }
+    
+    // Agregar fila con los datos
+    var row = [
+      data.fecha,
+      data.tipoContacto,
+      data.cliente,
+      data.telefono,
+      data.monto,
+      data.resultado,
+      data.nota,
+      data.proximaAccion,
+      data.proxContacto,
+      data.referencia
+    ];
+    sheet.appendRow(row);
+    sheet.autoResizeColumns(1, 9);
+    
+    return ContentService
+      .createTextOutput(JSON.stringify({ok:true}))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch(err) {
+    return ContentService
+      .createTextOutput(JSON.stringify({ok:false,error:err.toString()}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}</pre>
+      <button onclick="copiarCodigoSheets()" style="position:absolute;top:10px;right:10px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:6px;color:#fff;font-size:11px;padding:4px 8px;cursor:pointer;font-family:'Sora',sans-serif" id="btn-copiar-sheets">Copiar</button>
+    </div>
+    <div class="campo">
+      <label>URL del Apps Script</label>
+      <input type="url" id="f-sheets-url" placeholder="https://script.google.com/macros/s/...">
+    </div>
+    <div id="sheets-estado" style="font-size:12px;margin-bottom:10px;display:none"></div>
+    <button class="btn-guardar" onclick="guardarSheetsUrl()">Guardar y conectar</button>
+    <button class="btn-cancelar" onclick="cerrar('modal-sheets')">Cancelar</button>
+  </div>
+</div>
+
+<!-- MODAL ALERTAS -->
+<div class="overlay" id="modal-alertas">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-titulo">🔔 Alertas de llamados</div>
+    <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:11px;margin-bottom:14px;font-size:13px;color:#166534;line-height:1.6">
+      Recibís dos tipos de alertas:<br>
+      📞 <b>Recordatorio diario</b> a la hora elegida.<br>
+      🤝 <b>Promesas de pago</b> cuando llegue el día acordado.
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:#f8fafc;border-radius:12px;margin-bottom:13px">
+      <div><div style="font-size:14px;font-weight:700">Activar alertas diarias</div><div id="tog-estado" style="font-size:12px;margin-top:2px;color:var(--muted)">Desactivada</div></div>
+      <label class="tog"><input type="checkbox" id="tog-check" onchange="actualizarToggle()"><span class="tog-track"></span><span class="tog-thumb"></span></label>
+    </div>
+    <div id="hora-wrap" style="opacity:.4;transition:opacity .2s">
+      <div class="campo"><label>Hora del recordatorio diario</label><input type="time" id="f-hora" value="09:00"></div>
+    </div>
+    <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px;font-size:12px;color:#92400e;margin-bottom:13px">
+      ⚠️ El navegador pedirá permiso para notificaciones. La pestaña debe estar abierta.
+    </div>
+    <button class="btn-guardar" onclick="guardarAlerta()">Guardar</button>
+    <button class="btn-cancelar" onclick="cerrar('modal-alertas')">Cancelar</button>
+  </div>
+</div>
+
+<script>
+// ── UTILS ──
+const hoy=new Date(), hoyStr=fmtISO(hoy);
+function fmtISO(d){return`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`}
+function p(n){return String(n).padStart(2,'0')}
+function diasHasta(s){if(!s)return 999;const f=new Date(s+'T00:00:00'),h=new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate());return Math.round((f-h)/86400000)}
+function fmtFecha(s){if(!s)return'—';return new Date(s+'T00:00:00').toLocaleDateString('es-AR',{weekday:'short',day:'numeric',month:'short'})}
+function fmtFechaLarga(s){if(!s)return'—';return new Date(s+'T00:00:00').toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'})}
+function proxDefault(r){const d=new Date(hoy),m={contesto:7,'no-contesto':1,prometio:3,'no-localizado':2};d.setDate(d.getDate()+(m[r]||3));return fmtISO(d)}
+
+// ── FIREBASE ──
+let db=null, modoLocal=false;
+let clientes=[], nextId=10, clienteActivo=null, resSeleccionado=null, editandoId=null;
+let tab='hoy', filtro='todos';
+let reconocedor=null, vozActiva=false;
+let alertaOn=localStorage.getItem('alerta_on')==='true';
+let alertaHora=localStorage.getItem('alerta_hora')||'09:00';
+let alertaTimer=null;
+let calMes=hoy.getMonth(), calAnio=hoy.getFullYear();
+
+const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const DIAS_CORTO=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+
+function setSyncStatus(e){
+  const dot=document.getElementById('sync-dot'),txt=document.getElementById('sync-txt');
+  if(e==='ok'){dot.className='sync-dot ok';txt.textContent='Sincronizado';}
+  else if(e==='sync'){dot.className='sync-dot sync';txt.textContent='Guardando...';}
+  else{dot.className='sync-dot';txt.textContent='Sin conexión';}
+}
+
+function parsearConfig(txt){
+  const cfg={};const re=/(\w+)\s*:\s*["']([^"']+)["']/g;let m;
+  while((m=re.exec(txt))!==null)cfg[m[1]]=m[2];return cfg;
+}
+
+function conectarFirebase(){
+  const input=document.getElementById('setup-input').value.trim();
+  const cfg=parsearConfig(input);
+  if(!cfg.apiKey||!cfg.databaseURL){document.getElementById('setup-error').style.display='block';return;}
+  try{
+    if(!firebase.apps.length)firebase.initializeApp(cfg);
+    db=firebase.database();
+    db.ref('.info/connected').once('value').then(()=>{
+      localStorage.setItem('fb_cfg',JSON.stringify(cfg));iniciarApp();
+    }).catch(()=>{document.getElementById('setup-error').style.display='block';});
+  }catch(e){document.getElementById('setup-error').style.display='block';}
+}
+
+function usarSinNube(){
+  modoLocal=true;
+  document.getElementById('setup-screen').style.display='none';
+  document.getElementById('app-main').style.display='block';
+  const g=localStorage.getItem('cobranzas_v2');
+  if(g){const d=JSON.parse(g);const raw=d.clientes||[];clientes=Array.isArray(raw)?raw.filter(Boolean):Object.values(raw).filter(Boolean);nextId=d.nextId||10;}
+  else cargarEjemplos();
+  document.getElementById('sync-dot').style.display='none';
+  document.getElementById('sync-txt').textContent='Solo local';
+  inicializarUI();
+}
+
+function iniciarApp(){
+  document.getElementById('setup-screen').style.display='none';
+  document.getElementById('app-main').style.display='block';
+  setSyncStatus('sync');
+  db.ref('cobranzas').on('value',snap=>{
+    const d=snap.val();
+    if(d){
+      const raw=d.clientes||[];
+      clientes=Array.isArray(raw)?raw.filter(Boolean):Object.values(raw).filter(Boolean);
+      nextId=d.nextId||10;
+      normalizarTodos();
+    }
+    else{cargarEjemplos();guardarDatos();}
+    setSyncStatus('ok');render();
+  });
+  db.ref('.info/connected').on('value',s=>{if(!s.val())setSyncStatus('offline');});
+  inicializarUI();
+}
+
+function guardarDatos(){
+  if(modoLocal){localStorage.setItem('cobranzas_v2',JSON.stringify({clientes,nextId}));return;}
+  setSyncStatus('sync');
+  db.ref('cobranzas').set({clientes,nextId}).then(()=>setSyncStatus('ok')).catch(()=>setSyncStatus('offline'));
+}
+
+function cargarEjemplos(){
+  clientes=[
+    {id:1,nombre:'María López',telefono:'3442-123456',monto:85000,referencia:'FAC-001',notas:'',proxContacto:hoyStr,llamadas:[{fecha:hoyStr,resultado:'contesto',nota:'Dijo que llama mañana'}]},
+    {id:2,nombre:'Roberto Fernández',telefono:'3442-654321',monto:142000,referencia:'FAC-002',notas:'',proxContacto:fmtISO(new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate()+2)),llamadas:[{fecha:fmtISO(new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate()-1)),resultado:'prometio',nota:'Paga el jueves'}]},
+    {id:3,nombre:'Claudia Martínez',telefono:'3442-111222',monto:38500,referencia:'FAC-003',notas:'Hablar con marido',proxContacto:fmtISO(new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate()+5)),llamadas:[]},
+  ];
+  nextId=10;
+}
+
+function inicializarUI(){
+  document.getElementById('fecha-header').textContent=hoy.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});
+  if(alertaOn)programarAlerta();
+  verificarPromesasHoy();
+  render();
+}
+
+// Auto-conectar si ya hay config
+const cfgG=localStorage.getItem('fb_cfg');
+if(cfgG){
+  try{
+    const cfg=JSON.parse(cfgG);
+    document.getElementById('setup-input').value=Object.entries(cfg).map(([k,v])=>`${k}: "${v}"`).join(',\n');
+    if(!firebase.apps.length)firebase.initializeApp(cfg);
+    db=firebase.database();iniciarApp();
+  }catch(e){localStorage.removeItem('fb_cfg');}
+}
+
+// ── RENDER ──
+const RESS={contesto:{lbl:'Contestó',cls:'r-contesto',ico:'✅'},'no-contesto':{lbl:'No contestó',cls:'r-no-contesto',ico:'📵'},prometio:{lbl:'Prometió pagar',cls:'r-prometio',ico:'🤝'},'no-localizado':{lbl:'No localizado',cls:'r-no-localizado',ico:'❓'},pendiente:{lbl:'Sin llamadas',cls:'r-pendiente',ico:'🕐'},'cobro-realizado':{lbl:'Cobro realizado',cls:'r-contesto',ico:'💰'}};
+function normalizarCliente(c){
+  if(!c) return null;
+  const raw = c.llamadas||[];
+  c.llamadas = Array.isArray(raw) ? raw.filter(Boolean) : Object.values(raw).filter(Boolean);
+  return c;
+}
+function normalizarTodos(){ clientes = clientes.map(normalizarCliente).filter(Boolean); }
+function ultRes(c){const l=c.llamadas||[];return l.length?l[l.length-1].resultado:'pendiente'}
+
+function setTab(t){
+  tab=t;
+  ['hoy','todos','historial'].forEach(x=>document.getElementById('tab-'+x).classList.toggle('active',x===t));
+  document.getElementById('tab-cal').classList.toggle('active',t==='calendario');
+  document.getElementById('barra-busq').style.display=(t==='historial'||t==='calendario')?'none':'flex';
+  render();
+}
+function setFiltro(f){filtro=f;document.getElementById('f-todos').classList.toggle('active',f==='todos');document.getElementById('f-pend').classList.toggle('active',f==='pendiente');render();}
+
+function render(){
+  if(!document.getElementById('lista'))return;
+  document.getElementById('st-total').textContent=clientes.length;
+  document.getElementById('st-hoy').textContent=clientes.filter(c=>diasHasta(c.proxContacto)<=0).length;
+  document.getElementById('st-prometio').textContent=clientes.filter(c=>ultRes(c)==='prometio').length;
+  document.getElementById('st-pendiente').textContent=clientes.filter(c=>!c.llamadas.length).length;
+
+  const cont=document.getElementById('lista');
+  const busq=(document.getElementById('input-buscar').value||'').toLowerCase();
+
+  if(tab==='calendario'){document.getElementById('alerta-panel').innerHTML='';renderCalendario();return;}
+
+  if(tab==='historial'){
+    document.getElementById('alerta-panel').innerHTML='';
+    const todas=[];clientes.forEach(c=>c.llamadas.forEach(l=>todas.push({...l,cNombre:c.nombre})));
+    todas.sort((a,b)=>b.fecha.localeCompare(a.fecha));
+    if(!todas.length){cont.innerHTML='<div class="empty"><div class="empty-icon">📋</div><p>Sin llamadas registradas</p></div>';return;}
+    cont.innerHTML=todas.map(l=>{const r=RESS[l.resultado]||RESS.pendiente;return`<div class="cliente-card ok" style="cursor:default"><div class="card-top"><div><div class="cliente-nombre" style="font-size:13px">${l.cNombre}</div><div class="cliente-info">${fmtFecha(l.fecha)}</div></div><span class="rbadge ${r.cls}">${r.ico} ${r.lbl}</span></div>${l.nota?`<div style="font-size:12px;color:var(--muted);padding-top:3px">"${l.nota}"</div>`:''}</div>`;}).join('');
+    return;
+  }
+
+  let lista=[...clientes];
+  if(tab==='hoy'){
+    lista=lista.filter(c=>diasHasta(c.proxContacto)<=0).sort((a,b)=>diasHasta(a.proxContacto)-diasHasta(b.proxContacto));
+    renderAlertas(lista);
+  } else {
+    document.getElementById('alerta-panel').innerHTML='';
+  }
+
+  if(filtro==='pendiente')lista=lista.filter(c=>!c.llamadas.length);
+  if(busq)lista=lista.filter(c=>c.nombre.toLowerCase().includes(busq)||(c.referencia||'').toLowerCase().includes(busq));
+  if(!lista.length){cont.innerHTML=`<div class="empty"><div class="empty-icon">👥</div><p>${tab==='hoy'?'¡Sin llamadas para hoy! 🎉':'No hay clientes'}</p></div>`;return;}
+
+  cont.innerHTML=lista.map(c=>{
+    const ult=ultRes(c),r=RESS[ult]||RESS.pendiente;
+    const dias=diasHasta(c.proxContacto);
+    const cc=dias<0?'hoy':dias===0?'hoy':dias<=2?'pronto':'ok';
+    let fl='',fc='';
+    if(dias<0){fl=`Hace ${Math.abs(dias)} día${Math.abs(dias)>1?'s':''} (atrasado)`;fc='urgente';}
+    else if(dias===0){fl='Hoy';fc='hoy-cls';}
+    else fl=fmtFecha(c.proxContacto);
+    return`<div class="cliente-card ${cc}" onclick="abrirHistorial(${c.id})">
+      <div class="card-top"><div><div class="cliente-nombre">${c.nombre}</div><div class="cliente-info">📱 ${c.telefono||'Sin teléfono'}${c.referencia?' · '+c.referencia:''}</div></div><div class="monto-tag">$${c.monto.toLocaleString('es-AR')}</div></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:5px"><span class="rbadge ${r.cls}">${r.ico} ${r.lbl}</span><span style="font-size:11px;color:var(--muted)">🕐 ${c.llamadas.length} llamada${c.llamadas.length!==1?'s':''}</span></div>
+      <div class="acciones" onclick="event.stopPropagation()">
+        <button class="btn-a ba-contesto" onclick="rapido(${c.id},'contesto')">✅ Contestó</button>
+        <button class="btn-a ba-nocontesto" onclick="rapido(${c.id},'no-contesto')">📵 No contestó</button>
+        <button class="btn-a ba-prometio" onclick="rapido(${c.id},'prometio')">🤝 Prometió pagar</button>
+        <button class="btn-a ba-mas" onclick="abrirLlamada(${c.id})">📝 Más opciones</button>
+      </div>
+      <div class="fila-contacto" onclick="event.stopPropagation()">
+        <button class="btn-a ba-wa" onclick="abrirWA(${c.id})">💬 Mensaje WhatsApp</button>
+        <button class="btn-a ba-tel" onclick="llamarTel(${c.id})">📞 Llamar</button>
+      </div>
+      <div class="prox-llamada"><span class="prox-label">Próximo contacto</span><span class="prox-fecha ${fc}">${fl}</span></div>
+    </div>`;
+  }).join('');
+}
+
+function renderAlertas(lista){
+  const promesasHoy=clientes.filter(c=>c.proxContacto===hoyStr&&ultRes(c)==='prometio');
+  const atras=lista.filter(c=>diasHasta(c.proxContacto)<0);
+  const deHoy=lista.filter(c=>diasHasta(c.proxContacto)===0&&ultRes(c)!=='prometio');
+  let html='';
+  if(promesasHoy.length){
+    html+=`<div class="alerta-promesa"><div class="alerta-promesa-titulo">🤝 Promesas de pago para HOY (${promesasHoy.length})</div>`;
+    promesasHoy.forEach(c=>{
+      const nota=c.llamadas.length?c.llamadas[c.llamadas.length-1].nota:'';
+      html+=`<div class="alerta-promesa-item">💰 <b>${c.nombre}</b> — $${c.monto.toLocaleString('es-AR')}${nota?` · "${nota}"`:''}</div>`;
+    });
+    html+='</div>';
+  }
+  if(atras.length||deHoy.length){
+    html+=`<div class="alerta-hoy"><div class="alerta-hoy-titulo">🔔 Llamadas pendientes (${atras.length+deHoy.length})</div>`;
+    atras.forEach(c=>{const d=Math.abs(diasHasta(c.proxContacto));html+=`<div class="alerta-hoy-item">⚠️ <b>${c.nombre}</b> — hace ${d} día${d>1?'s':''}</div>`;});
+    deHoy.forEach(c=>{html+=`<div class="alerta-hoy-item">📞 <b>${c.nombre}</b> — hoy</div>`;});
+    html+='</div>';
+  }
+  document.getElementById('alerta-panel').innerHTML=html;
+}
+
+// ── CALENDARIO ──
+function renderCalendario(){
+  const primerDia=new Date(calAnio,calMes,1);
+  const diasEnMes=new Date(calAnio,calMes+1,0).getDate();
+  const iniciaSemana=primerDia.getDay(); // 0=Dom
+
+  // Agrupar clientes por fecha
+  const porFecha={};
+  clientes.forEach(c=>{
+    const f=c.proxContacto;
+    if(!f)return;
+    const d=new Date(f+'T00:00:00');
+    if(d.getFullYear()===calAnio&&d.getMonth()===calMes){
+      if(!porFecha[f])porFecha[f]=[];
+      porFecha[f].push(c);
+    }
+  });
+
+  let html=`<div style="background:#fff;border-radius:16px;padding:16px;box-shadow:var(--shadow)">
+    <div class="cal-header">
+      <button class="cal-nav" onclick="calNavegar(-1)">‹</button>
+      <div class="cal-titulo">${MESES[calMes]} ${calAnio}</div>
+      <button class="cal-nav" onclick="calNavegar(1)">›</button>
+    </div>
+    <div class="cal-grid">`;
+
+  // Cabecera días
+  DIAS_CORTO.forEach(d=>{html+=`<div class="cal-dow">${d}</div>`;});
+
+  // Celdas vacías iniciales
+  for(let i=0;i<iniciaSemana;i++) html+=`<div class="cal-day vacio"></div>`;
+
+  // Días del mes
+  for(let dia=1;dia<=diasEnMes;dia++){
+    const fechaStr=`${calAnio}-${p(calMes+1)}-${p(dia)}`;
+    const esHoy=fechaStr===hoyStr;
+    const esPasado=new Date(fechaStr+'T00:00:00')<new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate());
+    const clsArr=clientes.filter(c=>c.proxContacto===fechaStr);
+    const prometidos=clsArr.filter(c=>ultRes(c)==='prometio');
+    const llamar=clsArr.filter(c=>ultRes(c)!=='prometio');
+    const atrasados=esPasado&&!esHoy?clsArr:[];
+    let clsCelda='cal-day';
+    if(esHoy)clsCelda+=' es-hoy';
+    if(esPasado&&!esHoy)clsCelda+=' pasado';
+    if(clsArr.length)clsCelda+=' tiene-eventos';
+    let dots='';
+    if(atrasados.length)dots+=`<div class="cal-dot d-atrasado" title="Atrasados"></div>`.repeat(Math.min(atrasados.length,3));
+    else{
+      if(prometidos.length)dots+=`<div class="cal-dot d-prometio" title="Prometieron pagar"></div>`.repeat(Math.min(prometidos.length,3));
+      if(llamar.length)dots+=`<div class="cal-dot d-llamar" title="Llamar"></div>`.repeat(Math.min(llamar.length,2));
+    }
+    let badge='';
+    if(atrasados.length)badge=`<div class="cal-badge atrasado">${atrasados.length} at.</div>`;
+    else if(prometidos.length&&!llamar.length)badge=`<div class="cal-badge prometio">${prometidos.length}💰</div>`;
+    else if(clsArr.length)badge=`<div class="cal-badge llamar">${clsArr.length}</div>`;
+    html+=`<div class="${clsCelda}" onclick="${clsArr.length?`abrirDia('${fechaStr}')`:''}" style="${clsArr.length?'':'cursor:default'}">
+      <div class="cal-day-num">${dia}</div>
+      <div class="cal-dots">${dots}</div>
+      ${badge}
+    </div>`;
+  }
+  html+=`</div>
+    <div class="cal-leyenda">
+      <div class="leyenda-item"><div class="cal-dot d-prometio" style="width:9px;height:9px"></div> Promesa de pago</div>
+      <div class="leyenda-item"><div class="cal-dot d-llamar" style="width:9px;height:9px"></div> Llamar</div>
+      <div class="leyenda-item"><div class="cal-dot d-atrasado" style="width:9px;height:9px"></div> Atrasado</div>
+    </div>
+  </div>`;
+
+  document.getElementById('lista').innerHTML=html;
+}
+
+function calNavegar(dir){calMes+=dir;if(calMes>11){calMes=0;calAnio++;}else if(calMes<0){calMes=11;calAnio--;}renderCalendario();}
+
+function abrirDia(fechaStr){
+  const lista=clientes.filter(c=>c.proxContacto===fechaStr);
+  if(!lista.length)return;
+  document.getElementById('md-titulo').textContent=`📅 ${fmtFechaLarga(fechaStr)}`;
+  const promesas=lista.filter(c=>ultRes(c)==='prometio');
+  const llamar=lista.filter(c=>ultRes(c)!=='prometio');
+  let h='';
+  if(promesas.length){
+    h+=`<div style="font-size:11px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">🤝 Prometieron pagar</div>`;
+    promesas.forEach(c=>{
+      const nota=c.llamadas.length?c.llamadas[c.llamadas.length-1].nota:'';
+      h+=`<div style="background:#eff6ff;border-radius:10px;padding:10px 12px;margin-bottom:7px;cursor:pointer" onclick="cerrar('modal-dia');setTimeout(()=>abrirHistorial(${c.id}),100)">
+        <div style="font-size:14px;font-weight:700">${c.nombre}</div>
+        <div style="font-size:12px;color:var(--muted)">$${c.monto.toLocaleString('es-AR')}${nota?` · "${nota}"`:''}</div>
+        <div style="display:flex;gap:6px;margin-top:7px">
+          <button class="btn-a ba-wa" style="flex:1;padding:7px;border-radius:8px;font-size:11px" onclick="event.stopPropagation();abrirWA(${c.id})">💬 WA</button>
+          <button class="btn-a ba-tel" style="flex:1;padding:7px;border-radius:8px;font-size:11px" onclick="event.stopPropagation();llamarTel(${c.id})">📞 Llamar</button>
+          <button class="btn-a ba-contesto" style="flex:2;padding:7px;border-radius:8px;font-size:11px" onclick="event.stopPropagation();cerrar('modal-dia');setTimeout(()=>abrirLlamada(${c.id}),100)">✅ Registrar llamada</button>
+        </div>
+      </div>`;
+    });
+  }
+  if(llamar.length){
+    h+=`<div style="font-size:11px;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:.4px;margin:${promesas.length?'14px':0} 0 8px">📞 Llamar</div>`;
+    llamar.forEach(c=>{
+      const r=RESS[ultRes(c)]||RESS.pendiente;
+      h+=`<div style="background:#fff7ed;border-radius:10px;padding:10px 12px;margin-bottom:7px;cursor:pointer" onclick="cerrar('modal-dia');setTimeout(()=>abrirHistorial(${c.id}),100)">
+        <div style="display:flex;align-items:center;justify-content:space-between"><div style="font-size:14px;font-weight:700">${c.nombre}</div><span class="rbadge ${r.cls}" style="font-size:10px">${r.ico} ${r.lbl}</span></div>
+        <div style="font-size:12px;color:var(--muted)">$${c.monto.toLocaleString('es-AR')} · ${c.telefono||'Sin teléfono'}</div>
+        <div style="display:flex;gap:6px;margin-top:7px">
+          <button class="btn-a ba-wa" style="flex:1;padding:7px;border-radius:8px;font-size:11px" onclick="event.stopPropagation();abrirWA(${c.id})">💬 WA</button>
+          <button class="btn-a ba-tel" style="flex:1;padding:7px;border-radius:8px;font-size:11px" onclick="event.stopPropagation();llamarTel(${c.id})">📞 Llamar</button>
+          <button class="btn-a ba-contesto" style="flex:2;padding:7px;border-radius:8px;font-size:11px" onclick="event.stopPropagation();cerrar('modal-dia');setTimeout(()=>abrirLlamada(${c.id}),100)">✅ Registrar llamada</button>
+        </div>
+      </div>`;
+    });
+  }
+  document.getElementById('md-body').innerHTML=h;
+  document.getElementById('modal-dia').classList.add('open');
+}
+
+// ── ACCIONES ──
+function rapido(id,resultado){const c=clientes.find(x=>x.id===id);if(!c)return;c.llamadas.push({fecha:hoyStr,resultado,nota:''});c.proxContacto=proxDefault(resultado);guardarDatos();}
+
+function abrirHistorial(id){
+  const c=clientes.find(x=>x.id===id);if(!c)return;clienteActivo=id;
+  document.getElementById('mh-titulo').textContent=c.nombre;
+  const r=RESS[ultRes(c)];
+  let h=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:11px"><div><div style="font-size:21px;font-weight:700;color:var(--accent)">$${c.monto.toLocaleString('es-AR')}</div><div style="font-size:12px;color:var(--muted)">${c.referencia||'Sin referencia'} · ${c.telefono||'Sin teléfono'}</div></div><span class="rbadge ${r.cls}">${r.ico} ${r.lbl}</span></div>`;
+  if(c.notas)h+=`<div style="background:#f8fafc;border-radius:8px;padding:8px 10px;font-size:12px;color:var(--muted);margin-bottom:10px">📌 ${c.notas}</div>`;
+  h+=`<div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px">Historial</div>`;
+  if(!c.llamadas.length)h+=`<div style="text-align:center;padding:16px;color:var(--muted);font-size:13px">Sin llamadas aún</div>`;
+  else h+=c.llamadas.slice().reverse().map(l=>{const lr=RESS[l.resultado]||RESS.pendiente;return`<div class="historial-item"><div class="hist-fecha">${fmtFecha(l.fecha)}</div><div style="flex:1"><span class="rbadge ${lr.cls}" style="font-size:10px">${lr.ico} ${lr.lbl}</span>${l.nota?`<div style="font-size:11px;color:var(--muted);margin-top:3px">"${l.nota}"</div>`:''}</div></div>`;}).join('');
+  document.getElementById('mh-body').innerHTML=h;
+  document.getElementById('modal-hist').classList.add('open');
+}
+
+function abrirLlamada(id){
+  clienteActivo=id;const c=clientes.find(x=>x.id===id);
+  document.getElementById('ml-titulo').textContent=`Llamada — ${c?.nombre||''}`;
+  resSeleccionado=null; tipoContacto=null;
+  document.querySelectorAll('#btns-res .btn-a').forEach(b=>{b.style.opacity='1';b.style.outline='none'});
+  document.querySelectorAll('#btns-tipo .btn-a').forEach(b=>{b.style.opacity='1';b.style.outline='none'});
+  document.getElementById('f-prox').value=proxDefault('contesto');
+  document.getElementById('f-nota').value='';
+  const mic=document.getElementById('btn-mic');mic.classList.remove('grabando');mic.textContent='🎤';
+  if(reconocedor){try{reconocedor.stop()}catch(e){}reconocedor=null;vozActiva=false;}
+  cerrar('modal-hist');
+  document.getElementById('modal-llamada').classList.add('open');
+}
+
+function selTipo(t,btn){
+  tipoContacto=t;
+  document.querySelectorAll('#btns-tipo .btn-a').forEach(b=>{b.style.opacity='.4';b.style.outline='none'});
+  btn.style.opacity='1';btn.style.outline='2px solid currentColor';
+}
+
+function selRes(r,btn){
+  resSeleccionado=r;
+  document.querySelectorAll('#btns-res .btn-a').forEach(b=>{b.style.opacity='.4';b.style.outline='none'});
+  btn.style.opacity='1';btn.style.outline='2px solid currentColor';
+  document.getElementById('f-prox').value=proxDefault(r);
+}
+
+function guardarLlamada(){
+  if(!resSeleccionado){alert('Seleccioná el resultado');return;}
+  const c=clientes.find(x=>x.id===clienteActivo);if(!c)return;
+  c.llamadas.push({fecha:hoyStr,resultado:resSeleccionado,nota:document.getElementById('f-nota').value.trim()});
+  c.proxContacto=document.getElementById('f-prox').value||proxDefault(resSeleccionado);
+  guardarDatos();cerrar('modal-llamada');
+}
+
+function abrirModalCliente(id){
+  editandoId=id;const c=id?clientes.find(x=>x.id===id):null;
+  document.getElementById('mc-titulo').textContent=c?'Editar cliente':'Nuevo cliente';
+  document.getElementById('f-nombre').value=c?.nombre||'';document.getElementById('f-tel').value=c?.telefono||'';
+  document.getElementById('f-monto').value=c?.monto||'';document.getElementById('f-ref').value=c?.referencia||'';
+  document.getElementById('f-notas').value=c?.notas||'';
+  document.getElementById('modal-cliente').classList.add('open');
+}
+function editarCliente(id){cerrar('modal-hist');abrirModalCliente(id);}
+function guardarCliente(){
+  const nombre=document.getElementById('f-nombre').value.trim(),monto=parseFloat(document.getElementById('f-monto').value);
+  if(!nombre||!monto){alert('Completá nombre y monto');return;}
+  if(editandoId){const c=clientes.find(x=>x.id===editandoId);c.nombre=nombre;c.telefono=document.getElementById('f-tel').value.trim();c.monto=monto;c.referencia=document.getElementById('f-ref').value.trim();c.notas=document.getElementById('f-notas').value.trim();}
+  else clientes.push({id:nextId++,nombre,telefono:document.getElementById('f-tel').value.trim(),monto,referencia:document.getElementById('f-ref').value.trim(),notas:document.getElementById('f-notas').value.trim(),proxContacto:hoyStr,llamadas:[]});
+  guardarDatos();cerrar('modal-cliente');
+}
+
+// ── WHATSAPP / LLAMAR ──
+function fmtWA(tel){let n=tel.replace(/\D/g,'');if(n.startsWith('0'))n='54'+n.slice(1);if(n.length<=10)n='54'+n;if(n.startsWith('54')&&n.length===12&&!n.startsWith('549'))n='549'+n.slice(2);return n;}
+function abrirWA(id){const c=clientes.find(x=>x.id===id);if(!c?.telefono){alert('Sin teléfono cargado. Editá el cliente.');return;}window.open(`https://wa.me/${fmtWA(c.telefono)}?text=${encodeURIComponent(`Hola ${c.nombre.split(' ')[0]}, te contactamos por tu deuda pendiente de $${c.monto.toLocaleString('es-AR')}. ¿Podemos coordinar el pago?`)}`,'_blank');}
+function llamarTel(id){const c=clientes.find(x=>x.id===id);if(!c?.telefono){alert('Sin teléfono cargado.');return;}window.location.href='tel:'+c.telefono.replace(/\s/g,'');}
+
+// ── VOZ ──
+function toggleVoz(){
+  if(!('webkitSpeechRecognition' in window)&&!('SpeechRecognition' in window)){
+    alert('Tu navegador no soporta grabación de voz. Usá Chrome en la computadora.');return;
+  }
+  const mic=document.getElementById('btn-mic');
+  if(vozActiva){
+    try{reconocedor&&reconocedor.stop();}catch(e){}
+    vozActiva=false;mic.classList.remove('grabando');mic.textContent='🎤';
+    return;
+  }
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  reconocedor=new SR();
+  reconocedor.lang='es-419';
+  reconocedor.continuous=true;
+  reconocedor.interimResults=false;
+  reconocedor.maxAlternatives=1;
+  const campo=document.getElementById('f-nota');
+  const base=campo.value;
+  vozActiva=true;mic.classList.add('grabando');mic.textContent='🔴 Hablá...';
+  reconocedor.onresult=e=>{
+    let t='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      if(e.results[i].isFinal) t+=e.results[i][0].transcript+' ';
+    }
+    if(t) campo.value=(base+(base?' ':'')+t).trim();
+  };
+  reconocedor.onerror=e=>{
+    vozActiva=false;mic.classList.remove('grabando');mic.textContent='🎤';
+    if(e.error==='no-speech') alert('No se detectó voz. Hablá más fuerte y cerca del micrófono.');
+    else if(e.error==='not-allowed') alert('Permiso de micrófono denegado. Habilitalo en la barra del navegador.');
+    else alert('Error de grabación: '+e.error);
+  };
+  reconocedor.onend=()=>{
+    if(vozActiva){try{reconocedor.start();}catch(e){vozActiva=false;mic.classList.remove('grabando');mic.textContent='🎤';}}
+  };
+  try{reconocedor.start();}catch(e){vozActiva=false;mic.classList.remove('grabando');mic.textContent='🎤';alert('No se pudo iniciar el micrófono: '+e.message);}
+}
+
+// ── GOOGLE SHEETS SYNC ──
+let sheetsUrl = localStorage.getItem('sheets_url')||'';
+
+function abrirModalSheets(){
+  document.getElementById('f-sheets-url').value=sheetsUrl;
+  document.getElementById('sheets-estado').style.display='none';
+  document.getElementById('modal-sheets').classList.add('open');
+}
+
+function guardarSheetsUrl(){
+  const url=document.getElementById('f-sheets-url').value.trim();
+  if(!url||!url.startsWith('https://script.google.com')){
+    mostrarEstadoSheets('❌ Pegá una URL válida de Google Apps Script','#fef2f2','#dc2626');return;
+  }
+  sheetsUrl=url;
+  localStorage.setItem('sheets_url',url);
+  mostrarEstadoSheets('✅ URL guardada correctamente','#f0fdf4','#16a34a');
+  setTimeout(()=>cerrar('modal-sheets'),1500);
+}
+
+function mostrarEstadoSheets(msg,bg,color){
+  const el=document.getElementById('sheets-estado');
+  el.style.display='block';el.style.background=bg;el.style.color=color;
+  el.style.padding='9px 12px';el.style.borderRadius='8px';el.textContent=msg;
+}
+
+function copiarCodigoSheets(){
+  const code=document.getElementById('sheets-code').textContent;
+  navigator.clipboard.writeText(code).then(()=>{
+    document.getElementById('btn-copiar-sheets').textContent='✓ Copiado';
+    setTimeout(()=>document.getElementById('btn-copiar-sheets').textContent='Copiar',2000);
+  });
+}
+
+const PROX_ACCION={
+  contesto:'Volver a llamar',
+  'no-contesto':'Volver a llamar',
+  prometio:'Promesa de cobro',
+  'no-localizado':'Volver a llamar',
+  'cobro-realizado':'Cobro realizado',
+  pendiente:'Sin acción',
+};
+
+function syncSheets(cliente, llamada){
+  if(!sheetsUrl) return;
+  const r=RESS[llamada.resultado]||RESS.pendiente;
+  const datos={
+    fecha: llamada.fecha,
+    tipoContacto: llamada.tipo==='whatsapp'?'💬 WhatsApp':'📞 Llamada',
+    cliente: cliente.nombre,
+    telefono: cliente.telefono||'',
+    monto: cliente.monto,
+    resultado: r.ico+' '+r.lbl,
+    nota: llamada.nota||'',
+    proximaAccion: PROX_ACCION[llamada.resultado]||'Volver a llamar',
+    proxContacto: cliente.proxContacto||'',
+    referencia: cliente.referencia||'',
+  };
+  fetch(sheetsUrl,{
+    method:'POST',
+    mode:'no-cors',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(datos),
+  }).catch(()=>{});
+}
+
+// ── ALERTAS / NOTIFICACIONES ──
+function verificarPromesasHoy(){
+  if(Notification.permission!=='granted')return;
+  const promesas=clientes.filter(c=>c.proxContacto===hoyStr&&ultRes(c)==='prometio');
+  if(promesas.length){
+    setTimeout(()=>{
+      new Notification(`🤝 ${promesas.length} promesa${promesas.length>1?'s':''} de pago HOY`,{
+        body:promesas.map(c=>`💰 ${c.nombre} — $${c.monto.toLocaleString('es-AR')}`).join('\n'),
+      });
+    },2000);
+  }
+}
+
+function abrirModalAlertas(){document.getElementById('f-hora').value=alertaHora;document.getElementById('tog-check').checked=alertaOn;actualizarToggle();document.getElementById('modal-alertas').classList.add('open');}
+function actualizarToggle(){
+  const on=document.getElementById('tog-check').checked;
+  document.getElementById('tog-estado').textContent=on?'Activada':'Desactivada';
+  document.getElementById('tog-estado').style.color=on?'#16a34a':'var(--muted)';
+  document.getElementById('hora-wrap').style.opacity=on?'1':'0.4';
+}
+function guardarAlerta(){
+  alertaHora=document.getElementById('f-hora').value||'09:00';alertaOn=document.getElementById('tog-check').checked;
+  localStorage.setItem('alerta_hora',alertaHora);localStorage.setItem('alerta_on',alertaOn);
+  if(alertaOn){
+    if(!('Notification' in window)){alert('Tu navegador no soporta notificaciones.');cerrar('modal-alertas');return;}
+    if(Notification.permission==='granted'){programarAlerta();cerrar('modal-alertas');}
+    else if(Notification.permission!=='denied'){Notification.requestPermission().then(p=>{if(p==='granted'){programarAlerta();cerrar('modal-alertas');}else alert('Permiso denegado. Habilitá las notificaciones en la config del navegador.');});}
+    else alert('Notificaciones bloqueadas. Habilitálas en Configuración del sitio.');
+  }else{clearTimeout(alertaTimer);cerrar('modal-alertas');}
+}
+function programarAlerta(){
+  clearTimeout(alertaTimer);if(!alertaOn||Notification.permission!=='granted')return;
+  const[h,m]=alertaHora.split(':').map(Number);
+  const ahora=new Date(),prox=new Date(ahora.getFullYear(),ahora.getMonth(),ahora.getDate(),h,m,0);
+  if(prox<=ahora)prox.setDate(prox.getDate()+1);
+  alertaTimer=setTimeout(()=>{
+    // Alerta de llamadas
+    const llamar=clientes.filter(c=>diasHasta(c.proxContacto)<=0&&ultRes(c)!=='prometio');
+    if(llamar.length)new Notification(`📞 ${llamar.length} llamada${llamar.length>1?'s':''} pendiente${llamar.length>1?'s':''}`,{body:llamar.slice(0,3).map(c=>c.nombre).join(', ')+(llamar.length>3?'…':'')});
+    // Alerta de promesas
+    const promesas=clientes.filter(c=>c.proxContacto===hoyStr&&ultRes(c)==='prometio');
+    if(promesas.length)setTimeout(()=>new Notification(`🤝 ${promesas.length} promesa${promesas.length>1?'s':''} de pago HOY`,{body:promesas.map(c=>`${c.nombre} — $${c.monto.toLocaleString('es-AR')}`).join('\n')}),1500);
+    programarAlerta();
+  },prox-ahora);
+}
+
+function cerrar(id){document.getElementById(id).classList.remove('open');render();}
+document.querySelectorAll('.overlay').forEach(el=>{el.addEventListener('click',e=>{if(e.target===el){el.classList.remove('open');render();}});});
+</script>
+</body>
+</html>
