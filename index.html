@@ -504,15 +504,21 @@ function inicializarUI(){
 }
 
 // Auto-conectar si ya hay config
-const cfgG=localStorage.getItem('fb_cfg');
-if(cfgG){
-  try{
-    const cfg=JSON.parse(cfgG);
-    document.getElementById('setup-input').value=Object.entries(cfg).map(([k,v])=>`${k}: "${v}"`).join(',\n');
-    if(!firebase.apps.length)firebase.initializeApp(cfg);
-    db=firebase.database();iniciarApp();
-  }catch(e){localStorage.removeItem('fb_cfg');}
-}
+// Config fija — no necesita configuración manual
+const CFG_FIJO = {
+  apiKey: "AIzaSyAi0ygFAJOzOjs-GKneEWL0a6a9UY8ep1Y",
+  authDomain: "cobranzas-e8aa8.firebaseapp.com",
+  databaseURL: "https://cobranzas-e8aa8-default-rtdb.firebaseio.com",
+  projectId: "cobranzas-e8aa8",
+  storageBucket: "cobranzas-e8aa8.firebasestorage.app",
+  messagingSenderId: "818982973126",
+  appId: "1:818982973126:web:e56c671065b84d7b2a31c7"
+};
+try{
+  if(!firebase.apps.length) firebase.initializeApp(CFG_FIJO);
+  db=firebase.database();
+  iniciarApp();
+}catch(e){ console.error(e); }
 
 // ── RENDER ──
 const RESS={contesto:{lbl:'Contestó',cls:'r-contesto',ico:'✅'},'no-contesto':{lbl:'No contestó',cls:'r-no-contesto',ico:'📵'},prometio:{lbl:'Prometió pagar',cls:'r-prometio',ico:'🤝'},'no-localizado':{lbl:'No localizado',cls:'r-no-localizado',ico:'❓'},pendiente:{lbl:'Sin llamadas',cls:'r-pendiente',ico:'🕐'},'cobro-realizado':{lbl:'Cobro realizado',cls:'r-contesto',ico:'💰'}};
