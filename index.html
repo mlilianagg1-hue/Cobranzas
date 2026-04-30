@@ -236,6 +236,7 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
       <button class="btn-a ba-mas" style="padding:12px;border-radius:11px;font-size:13px" onclick="editarCliente(clienteActivo)">✏️ Editar</button>
       <button class="btn-a ba-wa" style="padding:12px;border-radius:11px;font-size:13px" onclick="abrirWA(clienteActivo)">💬 WhatsApp</button>
       <button class="btn-a ba-tel" style="padding:12px;border-radius:11px;font-size:13px" onclick="llamarTel(clienteActivo)">📞 Llamar</button>
+      <button class="btn-a" style="padding:12px;border-radius:11px;font-size:13px;background:#fef2f2;color:#dc2626;grid-column:span 2" onclick="eliminarCliente(clienteActivo)">🗑️ Eliminar cliente</button>
       <button class="btn-a" style="padding:12px;border-radius:11px;font-size:13px;background:#fef9c3;color:#854d0e;grid-column:span 2" onclick="confirmarCerrarProceso(clienteActivo)">🔒 Cerrar proceso — Cobro completado</button>
     </div>
     <button class="btn-cancelar" onclick="cerrar('modal-hist')">Cerrar</button>
@@ -562,6 +563,14 @@ function guardarLlamada(){
   c.llamadas.push(llamada);
   c.proxContacto=document.getElementById('f-prox').value||proxDefault(resSeleccionado);
   guardarDatos();syncSheets(c,llamada);cerrar('modal-llamada');
+}
+
+function eliminarCliente(id){
+  const c=clientes.find(x=>x.id===id);if(!c)return;
+  if(!confirm(`¿Segura que querés eliminar a ${c.nombre}?\nEsta acción no se puede deshacer.`))return;
+  clientes=clientes.filter(x=>x.id!==id);
+  guardarDatos();
+  cerrar('modal-hist');
 }
 
 function confirmarCerrarProceso(id){
